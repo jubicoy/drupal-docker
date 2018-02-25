@@ -1,10 +1,4 @@
 #!/bin/bash
-export USER_ID=$(id -u)
-export GROUP_ID=$(id -g)
-envsubst < /workdir/passwd.template > /tmp/passwd
-export LD_PRELOAD=libnss_wrapper.so
-export NSS_WRAPPER_PASSWD=/tmp/passwd
-export NSS_WRAPPER_GROUP=/etc/group
 
 if [ ! -d /volume/themes ]; then
   mkdir -p /volume/themes
@@ -23,10 +17,6 @@ if [ ! -f /var/www/drupal/robots.txt ]; then
 fi
 
 if [ ! -d /var/www/drupal/sites/default ]; then
-  # Copy initial sites and configuration
-  cp -arf /tmp/sites/* /var/www/drupal/sites/
-  cp /var/www/drupal/sites/example.settings.local.php /var/www/drupal/sites/default/settings.local.php
-
   echo "Copying development.services.yml"
   # Download modules
   IFS=';' read -r -a modules <<< "$DRUPAL_MODULES"
