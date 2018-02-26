@@ -7,7 +7,7 @@ use
 require 'vendor/autoload.php';
 
 // Now we're creating a whole bunch of objects
-$rootDirectory = new DAV\FS\Directory('/var/www/drupal/sites');
+$rootDirectory = new DAV\FS\Directory('/volume');
 
 // The server object is responsible for making sense out of the WebDAV protocol
 $server = new DAV\Server($rootDirectory);

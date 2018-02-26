@@ -1,77 +1,100 @@
-FROM jubicoy/nginx-php:php7
-ENV DRUPAL_VERSION 7.57
+FROM jubicoy/nginx-php:php7-stable
 
-RUN apt-get update && \
-    apt-get -y install php7.0-fpm php7.0-mysql php-apcu \
-    php-imagick php7.0-imap php7.0-mcrypt php7.0-curl php7.0-mbstring \
-    php7.0-cli php7.0-gd php7.0-pgsql php7.0-sqlite php7.0-zip \
-    php7.0-common php-pear curl php7.0-json php-redis php-memcache git \
-    gzip netcat mysql-client imagemagick make php7.0-dev php-pear vim && \
-    apt-get clean
+RUN  apt-get update \
+  && apt-get -y install \
+    apache2-utils \
+    curl \
+    git \
+    gzip \
+    mysql-client \
+    netcat \
+    php-apcu \
+    php-imagick \
+    php-memcache \
+    php-pear \
+    php-redis \
+    php7.0-cli \
+    php7.0-common \
+    php7.0-curl \
+    php7.0-dev \
+    php7.0-fpm \
+    php7.0-gd \
+    php7.0-imap \
+    php7.0-json \
+    php7.0-mbstring \
+    php7.0-mcrypt \
+    php7.0-mysql \
+    php7.0-pgsql \
+    php7.0-sqlite \
+    php7.0-zip \
+    wget \
+  && rm -rf /var/lib/apt/lists/*
 
+ENV COMPOSER_VERSION 1.4.1
+ENV SABRE_VERSION ~3.1.0
+ENV DRUSH_VERSION 8.1.16
 
+# Install Drupal, Composer, Sabre and Drush
+RUN  rm -rf /var/www/* \
+  && curl -k https://ftp.drupal.org/files/projects/drupal-${DRUPAL_VERSION:-7.57}.tar.gz | tar zx -C /var/www/ \
+  && mv /var/www/drupal-${DRUPAL_VERSION:-7.57} /var/www/drupal \
+  && cp -rf /var/www/drupal/sites/default /tmp/ \
+  && cp -f /var/www/drupal/robots.txt /workdir/ \
+  && rm -rf /var/www/drupal/robots.txt \
+  && rm -rf /var/www/drupal/sites/all/* \
+  && rm -rf /var/www/drupal/sites/default
 
-RUN curl -k https://ftp.drupal.org/files/projects/drupal-${DRUPAL_VERSION}.tar.gz | tar zx -C /var/www/
-RUN mv /var/www/drupal-${DRUPAL_VERSION} /var/www/drupal
-RUN cp -rf /var/www/drupal/sites /tmp/
-ADD config/default.settings.php /tmp/sites/default/
-RUN cp -f /var/www/drupal/robots.txt /workdir/
-
-# Composer for Sabre installation
-ENV COMPOSER_VERSION 1.0.0-alpha11
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version=${COMPOSER_VERSION}
-
-# WebDAV configuration
-RUN apt-get install -y apache2-utils && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN mkdir -p /var/www/webdav && mkdir -p /var/www/webdav/locks && chmod -R 777 /var/www/webdav/locks
-ADD config/webdav.conf /etc/nginx/conf.d/webdav.conf
-ADD sabre/index.php /var/www/webdav/index.php
-
-# Sabre with composer
-RUN cd /var/www/webdav && composer require sabre/dav ~3.1.0 && composer update sabre/dav && cd
-
-# Add configuration files
-RUN mkdir -p /var/www/drupal/sites/default
-COPY config/default.settings.php /workdir/settings.php
-RUN cp /workdir/settings.php /var/www/drupal/sites/default/settings.php
-RUN mv /etc/php/7.0/fpm/php.ini /tmp/php.ini
-
-ADD config/default.conf /workdir/default.conf
-RUN rm -rf /etc/nginx/conf.d/default.conf && ln -s /var/www/drupal/sites/conf/default.conf /etc/nginx/conf.d/default.conf
-RUN rm -rf /var/www/drupal/robots.txt && ln -s /var/www/drupal/sites/robots.txt /var/www/drupal/robots.txt
-RUN ln -s /var/www/drupal/sites/conf/php.ini /etc/php/7.0/fpm/php.ini
-ADD entrypoint.sh /workdir/entrypoint.sh
-ADD config/nginx.conf /etc/nginx/nginx.conf
-
-# Install jsmin php extension
-RUN git clone -b feature/php7 https://github.com/sqmk/pecl-jsmin.git /workdir/pecl-jsmin
-RUN (cd /workdir/pecl-jsmin && phpize && ./configure && make install clean)
-RUN touch /etc/php/7.0/cli/conf.d/20-jsmin.ini && echo 'extension="jsmin.so"' >> /etc/php/7.0/cli/conf.d/20-jsmin.ini
-RUN echo 'extension="jsmin.so"' >> /tmp/php.ini
+# Install Composer & Sabre
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version="${COMPOSER_VERSION}" \
+  &&  mkdir -p /var/www/webdav/locks \
+  && chmod -R 777 /var/www/webdav/locks \
+  && cd /var/www/webdav \
+  && composer require sabre/dav "${SABRE_VERSION}" \
+  && composer update sabre/dav \
+  && cd
 
 # Install Drush
-RUN php -r "readfile('https://github.com/drush-ops/drush/releases/download/8.1.16/drush.phar');" > drush && chmod +x drush
-RUN mv drush /usr/local/bin/
+RUN  curl -SL https://github.com/drush-ops/drush/releases/download/${DRUSH_VERSION}/drush.phar -o /usr/local/bin/drush \
+  && chmod +x /usr/local/bin/drush \
+  && yes | drush init
 
-RUN chown -R 104:0 /var/www && chmod -R g+rw /var/www && \
-    chmod a+x /workdir/entrypoint.sh && chmod g+rw /workdir
+COPY root /
 
-VOLUME ["/var/www/drupal/sites"]
-
+# Link & patch configuration files
 # Additional CA certificate bundle (Mozilla)
-ADD mailchimp-ca.sh /workdir/mailchimp-ca.sh
-RUN chmod a+x /workdir/mailchimp-ca.sh && bash /workdir/mailchimp-ca.sh
-RUN update-ca-certificates
+RUN  rm -rf /etc/nginx/conf.d/default.conf \
+  && ln -s /volume/conf/default.conf /etc/nginx/conf.d/default.conf \
+  && mv /etc/php/7.0/fpm/php.ini /tmp/php.ini \
+  && /usr/libexec/fix-permissions /workdir \
+  && mkdir /volume \
+  && /usr/libexec/fix-permissions /volume \
+  && ln -s /volume/themes/ /var/www/drupal/sites/all/themes \
+  && ln -s /volume/modules/ /var/www/drupal/sites/all/modules \
+  && ln -s /volume/default/ /var/www/drupal/sites/default \
+  && ln -s /volume/libraries/ /var/www/drupal/sites/all/libraries \
+  && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
+  && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
+  && bash /workdir/mailchimp-ca.sh \
+  && update-ca-certificates \
+  && sed -i '/upload_max_filesize/c\upload_max_filesize = 250M' /tmp/php.ini \
+  && sed -i '/post_max_size/c\post_max_size = 250M' /tmp/php.ini
 
-# PHP max upload size
-RUN sed -i '/upload_max_filesize/c\upload_max_filesize = 250M' /tmp/php.ini
-RUN sed -i '/post_max_size/c\post_max_size = 250M' /tmp/php.ini
-# PHP max execution time
-RUN sed -i '/max_execution_time/c\max_execution_time = 60' /tmp/php.ini
+VOLUME ["/volume"]
+
+# Install jsmin php extension
+RUN  git clone -b feature/php7 https://github.com/sqmk/pecl-jsmin.git /workdir/pecl-jsmin \
+  && cd /workdir/pecl-jsmin \
+    && phpize \
+    && ./configure \
+    && make install clean \
+  && cd \
+  && touch /etc/php/7.0/cli/conf.d/20-jsmin.ini \
+  && echo 'extension="jsmin.so"' >> /etc/php/7.0/cli/conf.d/20-jsmin.ini \
+  && echo 'extension="jsmin.so"' >> /tmp/php.ini
 
 EXPOSE 5000
 EXPOSE 5005
 
-USER 104
+USER 100104
 
-CMD ["/usr/bin/supervisord"]
+CMD ["/opt/bin/start-cmd"]
