@@ -30,15 +30,14 @@ RUN  apt-get update \
     wget \
   && rm -rf /var/lib/apt/lists/*
 
-ENV DRUPAL_VERSION 8.4.5
 ENV COMPOSER_VERSION 1.4.1
 ENV SABRE_VERSION ~3.1.0
 ENV DRUSH_VERSION 8.1.16
 
 # Install Drupal, Composer, Sabre and Drush
 RUN  rm -rf /var/www/* \
-  && curl -k https://ftp.drupal.org/files/projects/drupal-${DRUPAL_VERSION}.tar.gz | tar zx -C /var/www/ \
-  && mv /var/www/drupal-${DRUPAL_VERSION} /var/www/drupal \
+  && curl -k https://ftp.drupal.org/files/projects/drupal-${DRUPAL_VERSION:-8.4.5}.tar.gz | tar zx -C /var/www/ \
+  && mv /var/www/drupal-${DRUPAL_VERSION:-8.4.5} /var/www/drupal \
   && cp -rf /var/www/drupal/sites/default /tmp/ \
   && /usr/libexec/fix-permissions /tmp/ \
   && cp -f /var/www/drupal/robots.txt /workdir/ \
