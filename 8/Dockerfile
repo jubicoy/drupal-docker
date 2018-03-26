@@ -8,7 +8,6 @@ RUN  apt-get update \
     gzip \
     mysql-client \
     netcat \
-    php-apcu \
     php-imagick \
     php-memcache \
     php-pear \
@@ -28,6 +27,7 @@ RUN  apt-get update \
     php7.0-sqlite \
     php7.0-zip \
     wget \
+    wkhtmltopdf \
   && rm -rf /var/lib/apt/lists/*
 
 ENV COMPOSER_VERSION 1.4.1
@@ -82,6 +82,20 @@ RUN  rm -rf /etc/nginx/conf.d/default.conf \
   && sed -i '/post_max_size/c\post_max_size = 250M' /tmp/php.ini
 
 VOLUME ["/volume"]
+
+# Install latest APCu module
+RUN mkdir -p /tmp/apcu-build \
+  && cd /tmp/apcu-build \
+  && git clone https://github.com/krakjoe/apcu \
+  && cd apcu \
+  && git checkout v5.1.9 \
+  && phpize7.0 \
+  && ./configure --with-php-config=/usr/bin/php-config7.0 \
+  && make \
+  && TEST_PHP_ARGS='-n' make test \
+  && make install \
+  && cd \
+  && rm -rf /tmp/apcu-build
 
 # Install jsmin php extension
 RUN  git clone -b feature/php7 https://github.com/sqmk/pecl-jsmin.git /workdir/pecl-jsmin \
