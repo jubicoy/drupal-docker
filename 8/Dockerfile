@@ -76,6 +76,7 @@ RUN  rm -rf /etc/nginx/conf.d/default.conf \
   && ln -s /volume/libraries/ /var/www/drupal/libraries \
   && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
   && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
+  && chmod 777 /var/www/drupal/vendor \
   && bash /workdir/mailchimp-ca.sh \
   && update-ca-certificates \
   && sed -i '/upload_max_filesize/c\upload_max_filesize = 250M' /tmp/php.ini \
