@@ -15,6 +15,13 @@ fi
 if [ ! -d /volume/vendor ]; then
   mkdir -p /volume/vendor
 fi
+if [ ! -f /volume/vendor/autoload.php ]; then
+  cp -rf /workdir/vendor-seed/* /volume/vendor/
+fi
+
+if [ ! -f /volume/composer.lock.drupal ]; then
+  cp -f /workdir/composer.lock.drupal /volume/composer.lock.drupal
+fi
 
 if [ ! -f /var/www/drupal/robots.txt ]; then
   mv -f /workdir/robots.txt /volume/robots.txt
@@ -73,20 +80,12 @@ if [ ! -f /tmp/dav_auth ]; then
   echo ${DAV_PASS}|htpasswd -i -c /tmp/dav_auth ${DAV_USER}
 fi
 
+cp -rf /workdir/vendor-seed/* /volume/vendor/
+pushd /var/www/drupal
+  composer dump-autoload
+popd
+
 # Disable Drupal8 twig cache
 rm -rf /workdir/drupal-config
-
-# Copy over 3rd party modules
-for library in /volume/vendor/*; do
-  if [ ! -d $library ]; then
-    continue
-  fi
-  library_name=$(basename "${library}")
-  if [ -d "/var/www/drupal/vendor/${library_name}" ]; then
-    continue
-  fi
-
-  cp -rf "${library}" "/var/www/drupal/vendor/${library_name}"
-done
 
 exec "/usr/bin/supervisord"

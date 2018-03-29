@@ -45,7 +45,9 @@ RUN  rm -rf /var/www/* \
   && rm -rf /var/www/drupal/themes/ \
   && rm -rf /var/www/drupal/modules/ \
   && rm -rf /var/www/drupal/robots.txt \
-  && rm -rf /var/www/drupal/sites/default
+  && rm -rf /var/www/drupal/sites/default \
+  && mv /var/www/drupal/vendor /workdir/vendor-seed \
+  && mv /var/www/drupal/composer.lock /workdir/composer.lock.drupal
 
 # Install Composer & Sabre
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version="${COMPOSER_VERSION}" \
@@ -100,12 +102,10 @@ RUN  rm -rf /etc/nginx/conf.d/default.conf \
   && ln -s /volume/modules/ /var/www/drupal/modules \
   && ln -s /volume/default/ /var/www/drupal/sites/default \
   && ln -s /volume/libraries/ /var/www/drupal/libraries \
+  && ln -s /volume/vendor /var/www/drupal/vendor \
+  && ln -s /volume/composer.lock.drupal /var/www/drupal/composer.lock \
   && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
   && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
-  && chmod 777 /var/www/drupal/vendor \
-  && chmod -R 777 /var/www/drupal/vendor/composer \
-  && chmod 777 /var/www/drupal/vendor/autoload.php \
-  && chmod 777 /var/www/drupal/composer.lock \
   && cat /var/www/drupal/composer.json \
     | jq -r '.extra["merge-plugin"].include = .extra["merge-plugin"].include + ["/volume/composer.json"]' \
     > /var/www/drupal/composer.json.tmp \
