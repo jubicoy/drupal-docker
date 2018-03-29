@@ -6,6 +6,7 @@ RUN  apt-get update \
     curl \
     git \
     gzip \
+    jq \
     mysql-client \
     netcat \
     php-imagick \
@@ -60,30 +61,6 @@ RUN  curl -SL https://github.com/drush-ops/drush/releases/download/${DRUSH_VERSI
   && chmod +x /usr/local/bin/drush \
   && yes | drush init
 
-COPY root /
-
-# Link & patch configuration files
-# Additional CA certificate bundle (Mozilla)
-RUN  rm -rf /etc/nginx/conf.d/default.conf \
-  && ln -s /volume/conf/default.conf /etc/nginx/conf.d/default.conf \
-  && mv /etc/php/7.0/fpm/php.ini /tmp/php.ini \
-  && /usr/libexec/fix-permissions /workdir \
-  && mkdir /volume \
-  && /usr/libexec/fix-permissions /volume \
-  && ln -s /volume/themes/ /var/www/drupal/themes \
-  && ln -s /volume/modules/ /var/www/drupal/modules \
-  && ln -s /volume/default/ /var/www/drupal/sites/default \
-  && ln -s /volume/libraries/ /var/www/drupal/libraries \
-  && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
-  && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
-  && chmod 777 /var/www/drupal/vendor \
-  && bash /workdir/mailchimp-ca.sh \
-  && update-ca-certificates \
-  && sed -i '/upload_max_filesize/c\upload_max_filesize = 250M' /tmp/php.ini \
-  && sed -i '/post_max_size/c\post_max_size = 250M' /tmp/php.ini
-
-VOLUME ["/volume"]
-
 # Install latest APCu module
 RUN mkdir -p /tmp/apcu-build \
   && cd /tmp/apcu-build \
@@ -108,6 +85,37 @@ RUN  git clone -b feature/php7 https://github.com/sqmk/pecl-jsmin.git /workdir/p
   && touch /etc/php/7.0/cli/conf.d/20-jsmin.ini \
   && echo 'extension="jsmin.so"' >> /etc/php/7.0/cli/conf.d/20-jsmin.ini \
   && echo 'extension="jsmin.so"' >> /tmp/php.ini
+
+COPY root /
+
+# Link & patch configuration files
+# Additional CA certificate bundle (Mozilla)
+RUN  rm -rf /etc/nginx/conf.d/default.conf \
+  && ln -s /volume/conf/default.conf /etc/nginx/conf.d/default.conf \
+  && mv /etc/php/7.0/fpm/php.ini /tmp/php.ini \
+  && /usr/libexec/fix-permissions /workdir \
+  && mkdir /volume \
+  && /usr/libexec/fix-permissions /volume \
+  && ln -s /volume/themes/ /var/www/drupal/themes \
+  && ln -s /volume/modules/ /var/www/drupal/modules \
+  && ln -s /volume/default/ /var/www/drupal/sites/default \
+  && ln -s /volume/libraries/ /var/www/drupal/libraries \
+  && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
+  && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
+  && chmod 777 /var/www/drupal/vendor \
+  && chmod -R 777 /var/www/drupal/vendor/composer \
+  && chmod 777 /var/www/drupal/vendor/autoload.php \
+  && chmod 777 /var/www/drupal/composer.lock \
+  && cat /var/www/drupal/composer.json \
+    | jq -r '.extra["merge-plugin"].include = .extra["merge-plugin"].include + ["/volume/composer.json"]' \
+    > /var/www/drupal/composer.json.tmp \
+    && mv /var/www/drupal/composer.json.tmp /var/www/drupal/composer.json \
+  && bash /workdir/mailchimp-ca.sh \
+  && update-ca-certificates \
+  && sed -i '/upload_max_filesize/c\upload_max_filesize = 250M' /tmp/php.ini \
+  && sed -i '/post_max_size/c\post_max_size = 250M' /tmp/php.ini
+
+VOLUME ["/volume"]
 
 EXPOSE 5000
 EXPOSE 5005
