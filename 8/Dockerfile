@@ -31,7 +31,7 @@ RUN  apt-get update \
     wkhtmltopdf \
   && rm -rf /var/lib/apt/lists/*
 
-ENV COMPOSER_VERSION 1.4.1
+ENV COMPOSER_VERSION 1.6.3
 ENV SABRE_VERSION ~3.1.0
 ENV DRUSH_VERSION 8.1.16
 
@@ -107,7 +107,7 @@ RUN  rm -rf /etc/nginx/conf.d/default.conf \
   && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
   && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
   && cat /var/www/drupal/composer.json \
-    | jq -r '.extra["merge-plugin"].include = .extra["merge-plugin"].include + ["/volume/composer.json"]' \
+    | jq -r '.extra["merge-plugin"].include = .extra["merge-plugin"].include + ["modules/*/composer.json", "/volume/composer.json"]' \
     > /var/www/drupal/composer.json.tmp \
     && mv /var/www/drupal/composer.json.tmp /var/www/drupal/composer.json \
   && bash /workdir/mailchimp-ca.sh \
