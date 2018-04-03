@@ -110,11 +110,6 @@ RUN  rm -rf /etc/nginx/conf.d/default.conf \
     | jq -r '.extra["merge-plugin"].include = .extra["merge-plugin"].include + ["modules/*/composer.json", "/volume/composer.json"]' \
     > /var/www/drupal/composer.json.tmp \
     && mv /var/www/drupal/composer.json.tmp /var/www/drupal/composer.json \
-  && (cd /var/www/drupal; \
-    HOME=/workdir \
-    COMPOSER_VENDOR_DIR=/workdir/vendor-seed \
-    COMPOSER_BIN_DIR=/workdir/vendor-seed \
-    composer update --lock) \
   && bash /workdir/mailchimp-ca.sh \
   && update-ca-certificates \
   && sed -i '/upload_max_filesize/c\upload_max_filesize = 250M' /tmp/php.ini \
