@@ -28,7 +28,6 @@ if [ ! -f /var/www/drupal/robots.txt ]; then
 fi
 
 if [ ! -d /var/www/drupal/sites/default ]; then
-  echo "Copying development.services.yml"
   # Download modules
   IFS=';' read -r -a modules <<< "$DRUPAL_MODULES"
   for module in "${modules[@]}"
@@ -43,15 +42,6 @@ if [ ! -d /var/www/drupal/sites/default ]; then
     echo "Downloading theme $theme"
     drush dl $theme -y --destination=/var/www/drupal/themes/
   done
-else
-  # Run updatedb with drush
-  echo "Running drush updb"
-  (cd /var/www/drupal/; drush updb -y)
-  # Apply pending entity schema updates
-  echo "Running drush entup"
-  (cd /var/www/drupal/; drush entup -y)
-  echo "Running drush cr"
-  (cd /var/www/drupal; drush cr)
 fi
 
 if [ ! -d /volume/default ]; then
@@ -80,12 +70,11 @@ if [ ! -f /tmp/dav_auth ]; then
   echo ${DAV_PASS}|htpasswd -i -c /tmp/dav_auth ${DAV_USER}
 fi
 
-cp -rf /workdir/vendor-seed/* /volume/vendor/
+# Disable Drupal8 twig cache
+rm -rf /workdir/drupal-config
+
 pushd /var/www/drupal
   composer dump-autoload
 popd
-
-# Disable Drupal8 twig cache
-rm -rf /workdir/drupal-config
 
 exec "/usr/bin/supervisord"

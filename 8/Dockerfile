@@ -54,8 +54,8 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
   &&  mkdir -p /var/www/webdav/locks \
   && chmod -R 777 /var/www/webdav/locks \
   && cd /var/www/webdav \
-  && composer require sabre/dav "${SABRE_VERSION}" \
-  && composer update sabre/dav \
+  && (HOME=/workdir composer require sabre/dav "${SABRE_VERSION}") \
+  && (HOME=/workdir composer update sabre/dav) \
   && cd
 
 # Install Drush

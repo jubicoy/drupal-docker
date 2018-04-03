@@ -1,0 +1,28 @@
+#!/bin/bash
+
+sleep 10
+
+if [ -f /volume/drupal-installed ]; then
+  pushd /var/www/drupal
+    # Run updatedb with drush
+    echo "Running drush updb"
+    drush updb -y
+    # Apply pending entity schema updates
+    echo "Running drush entup"
+    drush entup -y
+    echo "Running drush cr"
+    drush cr
+
+    vendor_actual=/volume/vendor
+    vendor_tmp=/workdir/vendor-tmp
+    cp -rf "${vendor_actual}" "${vendor_tmp}"
+    HOME=/workdir \
+      COMPOSER_VENDOR_DIR="${vendor_tmp}" \
+      COMPOSER_BIN_DIR="${vendor_tmp}/bin" \
+      composer update --lock
+    rm -rf "${vendor_actual}"
+    mv "${vendor_tmp}" "${vendor_actual}"
+  popd
+fi
+
+echo "ok" > /volume/drupal-installed
