@@ -14,7 +14,7 @@ if [ -f /volume/drupal-installed ]; then
     drush cr
 
     vendor_actual=/volume/vendor
-    vendor_tmp=/workdir/vendor-tmp
+    vendor_tmp=/volume/vendor-tmp
     cp -rf "${vendor_actual}" "${vendor_tmp}"
     HOME=/volume \
       COMPOSER_VENDOR_DIR="${vendor_tmp}" \
