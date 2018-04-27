@@ -72,6 +72,7 @@ RUN  rm -rf /etc/nginx/conf.d/default.conf \
   && ln -s /volume/modules/ /var/www/drupal/sites/all/modules \
   && ln -s /volume/default/ /var/www/drupal/sites/default \
   && ln -s /volume/libraries/ /var/www/drupal/sites/all/libraries \
+  && ln -s /volume/translations/ /var/www/drupal/sites/all/translations \
   && ln -s /volume/robots.txt /var/www/drupal/robots.txt \
   && ln -s /volume/conf/php.ini /etc/php/7.0/fpm/php.ini \
   && bash /workdir/mailchimp-ca.sh \
