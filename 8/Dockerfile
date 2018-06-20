@@ -86,7 +86,7 @@ RUN  git clone -b feature/php7 https://github.com/sqmk/pecl-jsmin.git /workdir/p
   && cd \
   && touch /etc/php/7.0/cli/conf.d/20-jsmin.ini \
   && echo 'extension="jsmin.so"' >> /etc/php/7.0/cli/conf.d/20-jsmin.ini \
-  && echo 'extension="jsmin.so"' >> /tmp/php.ini
+  && echo 'extension="jsmin.so"' > /etc/php/7.0/fpm/conf.d/20-jsmin.ini
 
 COPY root /
 
